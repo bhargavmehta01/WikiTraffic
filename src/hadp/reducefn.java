@@ -1,6 +1,7 @@
 package hadp;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -17,31 +18,36 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 
-public class reducefn extends Reducer<Text,IntWritable,Text,IntWritable> {
+public class reducefn extends Reducer<Text,Text,Text,Text> {
 
 	private static final int String = 0;
 	Map<String,Integer> outrmp = new HashMap<String,Integer>();
 	Map<String, Integer> pagebucket = new HashMap<String, Integer>();
 	Map<String, String> mnthpg = new HashMap<String, String>();
+	Map<String,BigInteger> pagesizelist = new HashMap<String,BigInteger>();
 	
 	IntWritable result = new IntWritable();
 	static String highPageName=null;
 
-	public void reduce(Text key, Iterable<IntWritable> values, Context context) throws
+	public void reduce(Text key, Iterable<Text> values, Context context) throws
 		IOException, InterruptedException
 	{
-		int sum = 0;
 		
-		for (IntWritable val : values)
+		int viewCount = 0;
+		BigInteger pageSize = null;
+		
+		for (Text val : values)
 		{
-			sum = val.get();
+			String tokens[]=val.toString().trim().split(":");
+			viewCount=Integer.parseInt(tokens[0]);
+			pageSize=new BigInteger(tokens[1]);
+			
 		}
-		result.set(sum);
-		pagebucket.put(key.toString(), sum);
-		//context.write(new Text(key),result);
+		result.set(viewCount);
+		pagebucket.put(key.toString(), viewCount);
+		pagesizelist.put(key.toString(), pageSize);
 	}
 
-	//context.write(new Text("Highest is : "), new Text(statesbucket.toString()));
 
 	@Override
 	protected void cleanup(Context context)
@@ -92,42 +98,52 @@ public class reducefn extends Reducer<Text,IntWritable,Text,IntWritable> {
 			
 		}
 		
+		context.write(new Text("*********************************"),null);
+		
+		context.write(new Text("\t\t\tHIGHEST VIEWCOUNT IN EACH MONTH\t\t\t"),null);
+		context.write(new Text("*********************************"),null);
+		context.write(new Text("MONTH NAME \t\tPAGE NAME\t\tVIEW COUNT\t\t"),null);
+		context.write(new Text("--------------------------------------------"),null);
 		
 		for(Entry<String, Integer> ent : outrmp.entrySet())
 		{
-			result.set(ent.getValue());
-			context.write(new Text(ent.getKey()+mnthpg.get(ent.getKey())),result);
-		}
-				
-				/*Map.Entry<String, Integer> maxEntry = null;
-				for(Entry<String, Integer> entr2 : inrmp.entrySet())
-				{
-					if(maxEntry == null || entr2.getValue().compareTo(maxEntry.getValue()) > 0)
-						maxEntry = entr2;
-				}
-				result.set(maxEntry.getValue());
-				outrmp.put(month, inrmp);
-			
-		}
+			context.write(new Text(ent.getKey()+"  "+mnthpg.get(ent.getKey())+"  "),new Text(ent.getValue().toString()));
+		}	
 		
-		Set sts = outrmp.entrySet();*/
-			
-			
+         context.write(new Text("*********************************"),null);
 		
-		
-		
-		
-
+		context.write(new Text("\t\t\tHIGHEST VIEWCOUNT IN WHOLE YEAR\t\t\t"),null);
+		context.write(new Text("*********************************"),null);
 		
 	Map.Entry<String, Integer> maxEntry = null;
 
-		for(Entry<String, Integer> entry1 : pagebucket.entrySet())
+		for(Entry<String, Integer> entry : pagebucket.entrySet())
 		{
-			if(maxEntry == null || entry1.getValue().compareTo(maxEntry.getValue()) > 0)
-				maxEntry = entry1;
+			if(maxEntry == null || entry.getValue().compareTo(maxEntry.getValue()) > 0)
+				maxEntry = entry;
 		}
-		result.set(maxEntry.getValue());
-		context.write(new Text("Yearly trend"+maxEntry.getKey()),result);
+		context.write(new Text("Yearly trend"+maxEntry.getKey()),new Text(maxEntry.getValue().toString()));
     
-	}
-	}
+		
+		Map.Entry<String, BigInteger> maxEntry1 = null;
+
+		for(Entry<String, BigInteger> entry1 : pagesizelist.entrySet())
+		{
+			if(maxEntry1 == null || entry1.getValue().compareTo(maxEntry1.getValue()) > 0)
+				maxEntry1 = entry1;
+		}
+		 context.write(new Text("*********************************"),null);
+			
+			context.write(new Text("\t\t\tMOST INFORMATIVE PAGE OF THE YEAR\t\t\t"),null);
+			context.write(new Text("*********************************"),null);
+			
+		context.write(new Text("Most Informative Page "+maxEntry1.getKey()),new Text(maxEntry1.getValue().toString()));
+		
+		
+		
+	}//end of cleanup
+	
+
+	
+	
+	}//end of class

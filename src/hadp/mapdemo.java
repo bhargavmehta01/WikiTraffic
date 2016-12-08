@@ -10,11 +10,11 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
-public class mapdemo extends Mapper<Object, Text, Text, IntWritable>{
+public class mapdemo extends Mapper<Object, Text, Text, Text>{
 	/*private final static IntWritable one = new IntWritable(1);
     private Text word = new Text();*/
 
-	private IntWritable one;
+	private Text one;
 	private Text second =new Text();    
     public void map(Object key, Text value, Context context) throws 
     	IOException, InterruptedException {
@@ -36,9 +36,9 @@ public class mapdemo extends Mapper<Object, Text, Text, IntWritable>{
         		String parts[]=array[i].split(" ");
                 String projectName=parts[0].trim();
                 String PageName=parts[1].trim();
-              	int viewCount = Integer.parseInt(parts[2].trim());
-           		int pageSize = Integer.parseInt(parts[3].trim());
-           		one=new IntWritable(viewCount);
+              	String viewCount = parts[2].trim();
+           		String pageSize = parts[3].trim();
+           		one=new Text(viewCount+":"+pageSize);
            		
                 second.set(month2+":"+PageName);       
                 context.write(second,one); 	
@@ -59,4 +59,6 @@ public class mapdemo extends Mapper<Object, Text, Text, IntWritable>{
    		}*/
    		
     }
+    
+     
 }
